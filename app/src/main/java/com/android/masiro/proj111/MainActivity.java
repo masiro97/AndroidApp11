@@ -41,10 +41,9 @@ public class MainActivity extends AppCompatActivity {
     ArrayAdapter<String> adapter;
     Button b;
     TextView tv;
-    int MODE = 1;
     int num_of_memo = 0;
     int pos = 0;
-
+    int MODE_LISTSELECTED = 0;
     Comparator<String> nameAsc = new Comparator<String>() {
         @Override
         public int compare(String o1, String o2) {
@@ -52,50 +51,145 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    public void getprevdata(int position) {
+        int prevyear = Integer.parseInt(memo.get(position).substring(0, 2));
+        int prevmonth = Integer.parseInt(memo.get(position).substring(3, 5));
+        int prevdate = Integer.parseInt(memo.get(position).substring(6, 8));
+
+        try {
+            String prevdays = "";
+
+            if (prevmonth < 10) {
+
+                prevdays = prevyear + "-0" + prevmonth + "-" + prevdate + ".memo";
+            } else {
+                prevdays = prevyear + "-" + prevmonth + "-" + prevdate + ".memo";
+            }
+            datepicker.init(prevyear + 2000, prevmonth - 1, prevdate, null);
+            BufferedReader br = new BufferedReader(new FileReader(getExternalPath() + "/diary/" +
+                    prevdays + ".txt"));
+            String readstr = "";
+            String str = null;
+            while ((str = br.readLine()) != null) readstr += str + "\n";
+
+            et.setText(readstr);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void OnButton(View v) {
+
+        String strmemo = et.getText().toString();
+        int year = datepicker.getYear() - 2000;
+        int month = datepicker.getMonth() + 1;
+        int date = datepicker.getDayOfMonth();
+        String days = "";
+
+        if (month < 10) {
+
+            days = year + "-0" + month + "-" + date + ".memo";
+        } else {
+            days = year + "-" + month + "-" + date + ".memo";
+        }
 
         if (v.getId() == R.id.btnsave) {
             //저장
-            String strmemo = et.getText().toString();
+            if (MODE_LISTSELECTED == 1) {
+                String list_name = memo.get(pos);
+                if (list_name.equals(days)) {
+                    //날짜 변경이 없을 때 데이터 변경
+                    try {
+                        BufferedWriter bw = new BufferedWriter(new FileWriter(getExternalPath() + "/diary/" +
+                                days + ".txt", false));
+                        bw.write(strmemo);
+                        bw.close();
+                        Toast.makeText(this, "수정완료", Toast.LENGTH_SHORT).show();
 
-            int year = datepicker.getYear() - 2000;
-            int month = datepicker.getMonth() + 1;
-            int date = datepicker.getDayOfMonth();
-            String days = "";
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
 
-            if (month < 10) {
+                }
 
-                days = year + "-0" + month + "-" + date + ".memo";
-            } else {
-                days = year + "-" + month + "-" + date + ".memo";
-            }
+                else {
+                    //날짜 변경이 있을 때 기존 데이터 삭제 새로 저장
+                    File file = new File(getExternalPath() + "/diary/" + memo.get(pos) + ".txt");
+                    file.delete();
+                    memo.remove(pos);
+                    Collections.sort(memo, nameAsc);
+                    adapter.notifyDataSetChanged();
 
+                    //새로 메모 추가하기
+                    int cnt = 0;
+                    for (int i = 0; i < memo.size(); i++) {
+                        if (memo.get(i).equals(days)) {
+                            cnt++;
+                            Toast.makeText(getApplicationContext(), "이미 메모가 존재합니다",
+                                    Toast.LENGTH_SHORT).show();
+                            int dataposition = memo.indexOf(memo.get(i));
+                            getprevdata(dataposition);
+                            File file2 = new File(getExternalPath() + "/diary/" + memo.get(i) + ".txt");
+                            file2.delete();
+                            MODE_LISTSELECTED = 2;
+                        }
+                    }
 
-            if (MODE == 1) {
-                int cnt = 0;
-                for (int i = 0; i < memo.size(); i++) {
-
-                    if (memo.get(i).equals(days)) {
-                        cnt++;
-                        b.setText("수정");
-                        Toast.makeText(getApplicationContext(), "이미 저장된 메모가 존재합니다",
-                                Toast.LENGTH_SHORT).show();
-
+                    if (cnt == 0) {
                         try {
-                            BufferedReader br = new BufferedReader(new FileReader(getExternalPath() + "/diary/" +
-                                    days + ".txt"));
-                            String readstr = "";
-                            String str = null;
-                            while ((str = br.readLine()) != null) readstr += str + "\n";
-                            et.setText(readstr);
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
+                            BufferedWriter bw = new BufferedWriter(new FileWriter(getExternalPath() + "/diary/" +
+                                    days + ".txt", false));
+                            bw.write(strmemo);
+                            bw.close();
+                            num_of_memo++;
+                            memo.add(days);
+                            Collections.sort(memo, nameAsc);
+                            adapter.notifyDataSetChanged();
+                            tv.setText("등록된 메모 개수: " + Integer.toString(num_of_memo));
+                            Toast.makeText(this, "기존 데이터를 삭제하고 새로 저장합니다", Toast.LENGTH_SHORT).show();
+
                         } catch (IOException e) {
                             e.printStackTrace();
+                            Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
                         }
-                        MODE = 2;
                     }
                 }
+            }
+            else if(MODE_LISTSELECTED == 2){
+                //수정하기
+                try {
+                    BufferedWriter bw = new BufferedWriter(new FileWriter(getExternalPath() + "/diary/" +
+                            days + ".txt", false));
+                    bw.write(strmemo);
+                    bw.close();
+                    Toast.makeText(this, "수정완료", Toast.LENGTH_SHORT).show();
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+
+                num_of_memo--;
+                tv.setText("등록된 메모 개수: " + Integer.toString(num_of_memo));
+            }
+
+            else {
+
+                int cnt = 0;
+                for (int i = 0; i < memo.size(); i++) {
+                    if (memo.get(i).equals(days)) {
+                        cnt++;
+                        Toast.makeText(getApplicationContext(), "이미 메모가 존재합니다",
+                                Toast.LENGTH_SHORT).show();
+                        int dataposition = memo.indexOf(memo.get(i));
+                        b.setText("수정");
+                        getprevdata(dataposition);
+                    }
+                }
+
                 if (cnt == 0) {
                     try {
                         BufferedWriter bw = new BufferedWriter(new FileWriter(getExternalPath() + "/diary/" +
@@ -107,72 +201,14 @@ public class MainActivity extends AppCompatActivity {
                         Collections.sort(memo, nameAsc);
                         adapter.notifyDataSetChanged();
                         tv.setText("등록된 메모 개수: " + Integer.toString(num_of_memo));
-
                         Toast.makeText(this, "저장완료", Toast.LENGTH_SHORT).show();
+
                     } catch (IOException e) {
                         e.printStackTrace();
                         Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
                     }
-
                 }
-
             }
-
-            else if (MODE == 2) {
-
-                int prevyear = Integer.parseInt(memo.get(pos).substring(0, 2));
-                int prevmonth = Integer.parseInt(memo.get(pos).substring(3, 5));
-                int prevdate = Integer.parseInt(memo.get(pos).substring(6, 8));
-                String prevdays = "";
-
-                if (month < 10) {
-
-                    prevdays = prevyear + "-0" + prevmonth + "-" + prevdate + ".memo";
-                } else {
-                    prevdays = prevyear + "-" + prevmonth + "-" + prevdate + ".memo";
-                }
-
-                if (prevyear == year && prevdate == date && prevmonth == month) {
-
-                    try {
-                        BufferedWriter bw = new BufferedWriter(new FileWriter(getExternalPath() + "/diary/" +
-                                days + ".txt", false));
-                        bw.write(strmemo);
-                        bw.close();
-                        Toast.makeText(this, "수정완료", Toast.LENGTH_SHORT).show();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-
-                } else {
-
-                    num_of_memo++;
-                    memo.add(days);
-                    memo.remove(prevdays);
-                    Collections.sort(memo, nameAsc);
-                    adapter.notifyDataSetChanged();
-                    tv.setText("등록된 메모 개수: " + Integer.toString(num_of_memo));
-
-                    try {
-                        BufferedWriter bw = new BufferedWriter(new FileWriter(getExternalPath() + "/diary/" +
-                                days + ".txt", false));
-                        bw.write(strmemo);
-                        bw.close();
-                        Toast.makeText(this, "저장완료", Toast.LENGTH_SHORT).show();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-
-                    File file = new File(getExternalPath() + "/diary/" + prevdays + ".txt");
-                    file.delete();
-
-                }
-
-            }
-
-
         } else if (v.getId() == R.id.btncancel) {
             //취소
             linear1.setVisibility(View.VISIBLE);
@@ -180,14 +216,13 @@ public class MainActivity extends AppCompatActivity {
 
         } else if (v.getId() == R.id.btn1) {
             //등록
-            MODE = 1;
+            MODE_LISTSELECTED = 0;
             et.setText(null);
             linear1.setVisibility(View.INVISIBLE);
             linear2.setVisibility(View.VISIBLE);
             b.setText("저장");
         }
     }
-
 
     public String getExternalPath() {
         String sdPath = "";
@@ -198,7 +233,6 @@ public class MainActivity extends AppCompatActivity {
             sdPath = getFilesDir() + "";
         }
         return sdPath;
-
     }
 
     @Override
@@ -292,7 +326,8 @@ public class MainActivity extends AppCompatActivity {
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 pos = position;
                 AlertDialog.Builder dlg = new AlertDialog.Builder(MainActivity.this);
-                dlg.setTitle("삭제하시겠습니까?");
+                dlg.setTitle("삭제");
+                dlg.setMessage("삭제하시겠습니까?");
                 dlg.setPositiveButton("취소", null);
                 dlg.setNegativeButton("확인", new DialogInterface.OnClickListener() {
                     @Override
@@ -302,52 +337,25 @@ public class MainActivity extends AppCompatActivity {
                         File file = new File(path + "/diary/" + name + ".txt");
                         file.delete();
                         memo.remove(pos);
+                        Collections.sort(memo, nameAsc);
                         adapter.notifyDataSetChanged();
                         tv.setText("등록된 메모 개수: " + Integer.toString(num_of_memo));
                     }
                 });
                 dlg.show();
-
                 return true;
             }
         });
-
 
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 pos = position;
                 b.setText("수정");
-                MODE = 2;
                 linear1.setVisibility(View.INVISIBLE);
                 linear2.setVisibility(View.VISIBLE);
-                int prevyear = Integer.parseInt(memo.get(pos).substring(0, 2));
-                int prevmonth = Integer.parseInt(memo.get(pos).substring(3, 5));
-                int prevdate = Integer.parseInt(memo.get(pos).substring(6, 8));
-
-                try {
-                    String prevdays = "";
-
-                    if (prevmonth < 10) {
-
-                        prevdays = prevyear + "-0" + prevmonth + "-" + prevdate + ".memo";
-                    } else {
-                        prevdays = prevyear + "-" + prevmonth + "-" + prevdate + ".memo";
-                    }
-
-                    BufferedReader br = new BufferedReader(new FileReader(getExternalPath() + "/diary/" +
-                            prevdays + ".txt"));
-                    String readstr = "";
-                    String str = null;
-                    while ((str = br.readLine()) != null) readstr += str + "\n";
-
-                    et.setText(readstr);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
+                MODE_LISTSELECTED = 1;
+                getprevdata(position);
             }
         });
     }
