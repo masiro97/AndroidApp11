@@ -144,7 +144,6 @@ public class MainActivity extends AppCompatActivity {
                                     days + ".txt", false));
                             bw.write(strmemo);
                             bw.close();
-                            num_of_memo++;
                             memo.add(days);
                             Collections.sort(memo, nameAsc);
                             adapter.notifyDataSetChanged();
@@ -154,7 +153,7 @@ public class MainActivity extends AppCompatActivity {
                         } catch (IOException e) {
                             e.printStackTrace();
                             Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
+                       }
                     }
                 }
             }
@@ -171,8 +170,6 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                     Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
-
-                num_of_memo--;
                 tv.setText("등록된 메모 개수: " + Integer.toString(num_of_memo));
             }
 
