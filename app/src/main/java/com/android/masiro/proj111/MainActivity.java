@@ -187,6 +187,7 @@ public class MainActivity extends AppCompatActivity {
                         int dataposition = memo.indexOf(memo.get(i));
                         b.setText("수정");
                         getprevdata(dataposition);
+                        MODE_LISTSELECTED = 2;
                     }
                 }
 
